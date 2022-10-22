@@ -1,0 +1,4 @@
+# Typical .gitignore file for a python project
+
+__pycache__/
+venv/

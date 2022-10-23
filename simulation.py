@@ -27,9 +27,9 @@ index2name = ["A", "B", "AB"]
 k1 = 0.5
 k2 = 0.5
 # diffusion coefficients of A, B, AB at x and y direction, a value in [0, 1]
-D_A = 0.9
-D_B = .11
-D_AB = .11
+D_A = -1.
+D_B = -1.
+D_AB = -1.
 # feed / kill species A / B / AB at certain time
 #TODO: implement this feature
 
@@ -40,15 +40,16 @@ T_size = (40, 40)
 T = np.zeros((len(species), *T_size), dtype=float)
 # T[0, :20, :20] = 100*np.random.random((20,20))
 # T[1, :20, :20] = 100*np.random.random((20,20))
-T[0,15:25,15:25] = 5*np.ones((10,10))
-# T[1,5:15,5:15] = 7*np.ones((10,10))
-# T[2,3:13,3:13] = 1*np.ones((10,10))
+T[0,15:25,15:25] = 50*np.ones((10,10))
+T[1,5:15,5:15] = 70*np.ones((10,10))
+T[2,3:13,3:13] = 0*np.ones((10,10))
 
 
 ## Animation setting
 save_animation = False
 colormaps = ["Reds", "Blues", "Purples"]      # colormap for each species
-cmap_min = -np.max(T)
+# cmap_min = -np.max(T)
+cmap_min = np.min(T)
 cmap_max = np.max(T)
 
 
@@ -64,11 +65,11 @@ Bstars = np.zeros(total_frame)
 Astars[0] = np.sum(T[[0,2],:,:])
 Bstars[0] = np.sum(T[[1,2],:,:])
 
-# laplacian_matrix = np.array([     # numerically unstable?
-#     [-1, -1, -1],
-#     [-1,  8, -1],
-#     [-1, -1, -1],
-# ])
+laplacian_matrix = np.array([     # numerically unstable?
+    [-1, -1, -1],
+    [-1,  8, -1],
+    [-1, -1, -1],
+])
 
 # laplacian_matrix = np.array([
 #     [-0.05, -0.2, -0.05],
@@ -76,13 +77,13 @@ Bstars[0] = np.sum(T[[1,2],:,:])
 #     [-0.05, -0.2, -0.05],
 # ])
 
-laplacian_matrix = 0.05 * np.array([     # larger laplacian
-    [-1, -1, -1, -1, -1],
-    [-1, -1, -1, -1, -1],
-    [-1, -1, 24, -1, -1],
-    [-1, -1, -1, -1, -1],
-    [-1, -1, -1, -1, -1],
-])
+# laplacian_matrix = 0.05 * np.array([     # larger laplacian
+#     [-1, -1, -1, -1, -1],
+#     [-1, -1, -1, -1, -1],
+#     [-1, -1, 24, -1, -1],
+#     [-1, -1, -1, -1, -1],
+#     [-1, -1, -1, -1, -1],
+# ])
 
 def update(frame_index):
     global T

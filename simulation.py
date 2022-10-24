@@ -24,26 +24,36 @@ where
 species = np.zeros(3, dtype=float)   # [A, B, AB]
 index2name = ["A", "B", "AB"]
 # reaction coefficients
-k1 = 0.5
-k2 = 0.5
+k1 = 1.
+k2 = 1.
 # diffusion coefficients of A, B, AB at x and y direction, a value in [0, 1]
-D_A = 17.
-D_B = 5.
-D_AB = 10.
-# feed / kill species A / B / AB at certain time
+D_A = 1.
+D_B = 1.
+D_AB = 1.
+# external force
 #TODO: implement this feature
+# velocity field
+
 
 # Define a 2d rectangle T. We will wrap it into a torus in the algorithm
 # T is a 3-dim array. Fix time t, T[0, x1, x2] is the concentration of species[0] 
 #   at location (x1, x2)
-T_size = (100, 100)
+T_size = (5, 5)
+dx = 0.1   # meter, the gap of the grid 
 T = np.zeros((len(species), *T_size), dtype=float)
-T[0, :30, :30] = 50*np.random.random((30,30))
-T[1, 70:, 70:] = 50*np.random.random((30,30))
-
-# T[0,100:150,100:150] = 50*np.ones((50,50))
-# T[1,200:250,200:250] = 70*np.ones((50,50))
+# T[0, 1:3, 1:3] = np.ones((2, 2))
+T[0, 1, 1] = 1
+T[1, 2, 2] = 1
+# T[0, 6:11, 6:11] = 10*np.ones((5,5))
+# T[1, 30:70, 30:70] = 5*np.ones((40,40))
+# T[2, 7:12, 7:12] = 50*np.random.random((5,5))
+# T[0,:50,:50] = 5*np.ones((50,50))
+# T[1,30:80,30:80] = 7*np.ones((50,50))
 # T[2,3:13,3:13] = 0*np.ones((10,10))
+
+# b = np.ones((2, *T_size))   # velocity field in R2 on the plane T
+b = 0.1*np.stack([np.zeros(T_size), np.ones(T_size)])
+# b = np.zeros((2,*T_size))
 
 
 ## Animation setting
@@ -51,15 +61,16 @@ save_animation = False
 colormaps = ["Reds", "Blues", "Purples"]      # colormap for each species
 
 # cmap_min = -np.max(T)     # use this setting to visually check for negative concentration (numerical instability)
-cmap_min = np.min(T)
-cmap_max = np.max(T)
-
+# cmap_min = np.min(T)
+# cmap_max = np.max(T)
+cmap_min = -1
+cmap_max = 2
 
 ## Numerical solution setting
 dt = 0.01   # second
-interval = 5   # interval between frames, milisecond
+interval = 10   # interval between frames, milisecond
 playback_speed = dt * 1000 / interval
-total_frame = 5000
+total_frame = 500
 print(f"dt = {dt}s, Playback speed: x{playback_speed:.1f}, Total time: {dt*total_frame:.2f}s")
 
 Astars = np.zeros(total_frame)
@@ -73,50 +84,6 @@ laplacian_matrix = np.array([
     [1, 1, 1],
 ])
 
-# laplacian_matrix = np.array([
-#     [0.05, 0.2, 0.05],
-#     [0.2,  -1 , 0.2 ],
-#     [0.05, 0.2, 0.05],
-# ])
-
-# laplacian_matrix = np.array([     # larger laplacian
-#     [1, 1, 1  , 1, 1],
-#     [1, 1, 1  , 1, 1],
-#     [1, 1, -24, 1, 1],
-#     [1, 1, 1  , 1, 1],
-#     [1, 1, 1  , 1, 1],
-# ])
-
-# In general, the Laplacian matrix of size N*N is 
-#   laplacian_matrix = np.ones((N, N))  
-#   laplacian_matrix[(N-1)/2, (N-1)/2] = -N*N+1
-# where N is an odd number
-
-# def gaussian_filter(kernel_size, sigma=1, muu=0):
-#     # Source: https://www.geeksforgeeks.org/how-to-generate-2-d-gaussian-array-using-numpy/
-#     # Initializing value of x,y as grid of kernel size
-#     # in the range of kernel size
- 
-#     x, y = np.meshgrid(np.linspace(-2, 2, kernel_size),
-#                        np.linspace(-2, 2, kernel_size))
-#     dst = np.sqrt(x**2+y**2)
- 
-#     # lower normal part of gaussian
-#     normal = 1/(2.0 * np.pi * sigma**2)
- 
-#     # Calculating Gaussian filter
-#     gauss = np.exp(-((dst-muu)**2 / (2.0 * sigma**2))) * normal
- 
- 
-# kernel_size = 21
-# laplacian_matrix = gaussian_filter(kernel_size=kernel_size)
-
-
-
-N = 3
-laplacian_matrix = np.ones((N, N))    # an example of numerically unstable laplacian matrix
-laplacian_matrix[(N-1)//2, (N-1)//2] = -N*N+1
-
 
 def update(frame_index):
     global T
@@ -126,18 +93,36 @@ def update(frame_index):
 
     # change caused by A + B -> AB
     delta_reaction = -k1*(T[0,:,:]*T[1,:,:]) + k2*T[2,:,:]
+    
     delta_diffusion = np.zeros((len(species), *T_size))
     for index in range(len(species)):
-        delta_diffusion[index,:,:] = convolve(T[index,:,:], laplacian_matrix, mode="wrap")
+        # delta_diffusion[index,:,:] = convolve(T[index,:,:], laplacian_matrix)   # square
+        delta_diffusion[index,:,:] = convolve(T[index,:,:], laplacian_matrix, mode="wrap")    # torus
 
-    T[0,:,:] += ( delta_reaction + D_A  * delta_diffusion[0, :, :]) * dt
-    T[1,:,:] += ( delta_reaction + D_B  * delta_diffusion[1, :, :]) * dt
-    T[2,:,:] += (-delta_reaction + D_AB * delta_diffusion[2, :, :]) * dt
+    delta_convection = np.zeros((len(species), *T_size))
+    ## Non-compressible, gradient-based
+    # for index in range(len(species)):
+    #     # gradient of current species
+    #     grad = np.stack(
+    #             np.gradient(np.pad(T[index, :, :], 1, mode="wrap"), edge_order=1),   # velocity_field dot gradient
+    #             axis = 0)[:,1:-1,1:-1] / dx
+    #     # velocity field dot product gradient
+    #     delta_convection[index, :, :] = np.sum(b * grad, axis=0)
+    
+    ## Direct discretization of divergence
+    # bu = np.zeros((len(species), *T_size))
+    # for index in range(len(species)):
+    #     bu = np.pad(b * np.stack([T[index,:,:], T[index,:,:]]), 1, mode="wrap")
+    #     delta_convection[index, :, :]  =  1/8*(bu[0, 2:, 1:-1] + bu[0, :-2, 1:-1] + bu[1, 1:-1, 2:] + bu[1, 1:-1, :-2])
+
+    T[0,:,:] += ( delta_reaction + D_A  * delta_diffusion[0, :, :] - delta_convection[0,:,:]) * dt
+    T[1,:,:] += ( delta_reaction + D_B  * delta_diffusion[1, :, :] - delta_convection[1,:,:]) * dt
+    T[2,:,:] += (-delta_reaction + D_AB * delta_diffusion[2, :, :] - delta_convection[2,:,:]) * dt
     
 
     for index in range(len(species)):
         # axes[index].set_title(f"Concentration of Species {index2name[index]} at {dt*frame_index:.2f}s, avg={np.average(T[index, :, :]):.2f}")
-        axes[index].set_title(f"[{index2name[index]}] at {dt*frame_index:.2f}s, avg={np.average(T[index, :, :]):.2e}")
+        axes[index].set_title(f"[{index2name[index]}] at {dt*frame_index:.2f}s, min={np.min(T[index, :, :]):.2e}")
         mats[index].set_data(T[index, :, :])
 
     # axes[-1].set_title("[A*]={Astar_cur:.2e}/{Astar_init:.2e}, [B*]={Bstar_cur:.2e}/{Bstar_init:.2e}".format(
@@ -158,6 +143,7 @@ def update(frame_index):
 
 
 fig, axes = plt.subplots(1, 4, figsize=(10, 10))
+fig.patch.set_facecolor('xkcd:gray')
 mats = []
 
 ## initialize the plot

@@ -27,9 +27,9 @@ index2name = ["A", "B", "AB"]
 k1 = 0.5
 k2 = 0.5
 # diffusion coefficients of A, B, AB at x and y direction, a value in [0, 1]
-D_A = 17.
-D_B = 5.
-D_AB = 10.
+D_A = 1.
+D_B = 1.
+D_AB = 1.
 # feed / kill species A / B / AB at certain time
 #TODO: implement this feature
 

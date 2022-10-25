@@ -38,12 +38,15 @@ D_AB = 1.
 # Define a 2d rectangle T. We will wrap it into a torus in the algorithm
 # T is a 3-dim array. Fix time t, T[0, x1, x2] is the concentration of species[0] 
 #   at location (x1, x2)
-T_size = (5, 5)
+T_size = (100, 100)
 dx = 0.1   # meter, the gap of the grid 
-T = np.zeros((len(species), *T_size), dtype=float)
+# T = np.random.random((len(species), *T_size))
+T = np.ones((len(species), *T_size))
+T[:,:50,:50] *= 20
+# T = np.zeros((len(species), *T_size), dtype=float)
 # T[0, 1:3, 1:3] = np.ones((2, 2))
-T[0, 1, 1] = 1
-T[1, 2, 2] = 1
+# T[0, 1, 1] = 1
+# T[1, 2, 2] = 1
 # T[0, 6:11, 6:11] = 10*np.ones((5,5))
 # T[1, 30:70, 30:70] = 5*np.ones((40,40))
 # T[2, 7:12, 7:12] = 50*np.random.random((5,5))
@@ -51,14 +54,11 @@ T[1, 2, 2] = 1
 # T[1,30:80,30:80] = 7*np.ones((50,50))
 # T[2,3:13,3:13] = 0*np.ones((10,10))
 
-# b = np.ones((2, *T_size))   # velocity field in R2 on the plane T
-b = 0.1*np.stack([np.zeros(T_size), np.ones(T_size)])
+b = np.random.random((2, *T_size))
+# b = 1*np.ones((2, *T_size))   # velocity field in R2 on the plane T
+# b = 1*np.stack([np.ones(T_size), np.ones(T_size)])
 # b = np.zeros((2,*T_size))
 
-
-## Animation setting
-save_animation = False
-colormaps = ["Reds", "Blues", "Purples"]      # colormap for each species
 
 # cmap_min = -np.max(T)     # use this setting to visually check for negative concentration (numerical instability)
 # cmap_min = np.min(T)
@@ -70,8 +70,13 @@ cmap_max = 2
 dt = 0.01   # second
 interval = 10   # interval between frames, milisecond
 playback_speed = dt * 1000 / interval
-total_frame = 500
+total_frame = 6000
 print(f"dt = {dt}s, Playback speed: x{playback_speed:.1f}, Total time: {dt*total_frame:.2f}s")
+
+## Animation setting
+save_animation = True
+colormaps = ["Reds", "Blues", "Purples"]      # colormap for each species
+
 
 Astars = np.zeros(total_frame)
 Bstars = np.zeros(total_frame)
@@ -101,13 +106,13 @@ def update(frame_index):
 
     delta_convection = np.zeros((len(species), *T_size))
     ## Non-compressible, gradient-based
-    # for index in range(len(species)):
-    #     # gradient of current species
-    #     grad = np.stack(
-    #             np.gradient(np.pad(T[index, :, :], 1, mode="wrap"), edge_order=1),   # velocity_field dot gradient
-    #             axis = 0)[:,1:-1,1:-1] / dx
-    #     # velocity field dot product gradient
-    #     delta_convection[index, :, :] = np.sum(b * grad, axis=0)
+    for index in range(len(species)):
+        # gradient of current species
+        grad = np.stack(
+                np.gradient(np.pad(T[index, :, :], 1, mode="wrap"), edge_order=1),   # velocity_field dot gradient
+                axis = 0)[:,1:-1,1:-1] / dx
+        # velocity field dot product gradient
+        delta_convection[index, :, :] = np.sum(b * grad, axis=0)
     
     ## Direct discretization of divergence
     # bu = np.zeros((len(species), *T_size))

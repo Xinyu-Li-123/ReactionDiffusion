@@ -215,9 +215,6 @@ def simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_si
     # global species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix
     
     def update_without_animation(frame_index):
-        # Dummy update
-        # T = np.random.random((len(species), *T_size))
-        
 
         # change caused by A + B -> AB
         try:
@@ -230,31 +227,28 @@ def simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_si
             T[1,:,:] += ( delta_reaction + D_B  * delta_diffusion[1, :, :]) * dt
             T[2,:,:] += (-delta_reaction + D_AB * delta_diffusion[2, :, :]) * dt
 
-            # std_species[0, frame_index] = T[0, :, :].std()
-            # std_species[1, frame_index] = T[1, :, :].std()
-            # std_species[2, frame_index] = T[2, :, :].std()
-
-            # Astars[frame_index] = np.sum(T[[0,2],:,:])
-            # Bstars[frame_index] = np.sum(T[[1,2],:,:])
         except RuntimeWarning as e:
             print(e)
             return True
         
 
-    # print("Simulating without animation...")    
-
-    # fig, axes = plt.subplots(1, 2, figsize=(10, 10))
-    # axes[0].set_title("CDF of A")
-    # # axes[0].set_xlim(0, np.max(T[0,:,:])*1.1)
-    # # axes[0].set_ylim(0, 1)
-    # # axes[0].set_aspect("auto")
-
-    # axes[1].set_title("CDF of B")
-    # # axes[1].set_xlim(0, np.max(T[1,:,:])*1.1)
-    # # axes[1].set_ylim(0, 1)
-    # # axes[1].set_aspect("auto")
+    print("Simulating without animation...")    
 
     has_overflow = False
+
+    fig, axes = plt.subplots(2, 2, figsize=(5, 5))
+    # set background color to gray
+    fig.patch.set_facecolor('gray')
+    axes[0, 0].matshow(
+        T[0, :, :]
+        )
+    axes[0, 0].set_title("[A] at {time:.2f}s".format(time=frame_index*dt))
+    axes[0, 1].matshow(
+        T[1, :, :]
+        )
+    axes[0, 1].set_title("[A] at {time:.2f}s".format(time=frame_index*dt))
+
+
     for frame_index in range(0, total_frame):
         if has_overflow:
             print("Overflow detected, aborting simulation...")
@@ -267,122 +261,19 @@ def simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_si
 
         has_overflow = update_without_animation(frame_index)
 
-        # # plot CDF of A and B on axes[0] and axes[1] with label
-        # if frame_index > 19999 and frame_index % 5000 == 0:
-        #     for species_index in range(2):
-        #         # The calculation of CDF is based on the following link:
-        #         #    https://www.geeksforgeeks.org/how-to-calculate-and-plot-a-cumulative-distribution-function-with-matplotlib-in-python/
-        #         count, bins_count = np.histogram(T[0,:,:].flatten(), bins=100)
-                
-        #         # finding the PDF of the histogram using count values
-        #         pdf = count / sum(count)
-                
-        #         # using numpy np.cumsum to calculate the CDF
-        #         # We can also find using the PDF values by looping and adding
-        #         cdf = np.cumsum(pdf)
-                
-        #         # plotting PDF and CDF
-        #         # axes[species_index].plot(bins_count[1:], cdf, label=f"CDF at {frame_index*dt:.2f}s", linewidth=2)
-    # print("mu_A={:.2e}, mu_B={:.2e}, std([A*]): {:.2e}, std([B*]): {:.2e})".format(
-    #     D_A*dt/(h**2), D_B*dt/(h**2),
-    #     np.std(T[0,:,:]), np.std(T[1,:,:])
-    # ))
+    axes[1, 0].matshow(
+        T[0,:,:], 
+        # cmap="Reds"
+        )
+    axes[1, 0].set_title("[A] at {time:.2f}s".format(time=frame_index*dt))
+    axes[1, 1].matshow(
+        T[1,:,:], 
+        # cmap="Blues"
+        )
+    axes[1, 1].set_title("[B] at {0:.2f}s".format(frame_index*dt))
+    plt.show()
 
-
-    # axes[0].legend()
-    # axes[1].legend()
-
-    # axes[0].hist(T[0,:,:].flatten(), bins=100)
-    # axes[0].set_title("Histogram of [A]")
-    # axes[1].hist(T[1,:,:].flatten(), bins=100)
-    # axes[1].set_title("Histogram of [B]")
-
-    # axes[0].matshow(
-    #     T[0,:,:], 
-    #     # cmap="Reds"
-    #     )
-    # axes[0].set_title("Concentration of [A]")
-    # axes[1].matshow(
-    #     T[1,:,:], 
-    #     # cmap="Blues"
-    #     )
-    # axes[1].set_title("Concentration of [B]")
-    # plt.show()
     return False
-
-
-# std_Astars = []
-# std_Bstars = []
-dt_range = np.linspace(0.0001, 0.01, 10)
-h_range = np.linspace(0.0001, 0.003, 10)
-dt_mesh, h_mesh = np.meshgrid(dt_range, h_range)
-
-# a dictionary that maps (dt, h)
-dt_h_has_overflow = {}
-for dt in dt_range:
-    for h in h_range:
-        dt_h_has_overflow[(dt, h)] = False
-
-
-# for _h in h_range:
-#     for _dt in dt_range:
-for dt_index in range(len(dt_range)):
-    for h_index in range(len(h_range)):
-        species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix = initialize()
-        dt = dt_range[dt_index]
-        total_frame = 200
-        # Astars = np.zeros(total_frame)
-        # Bstars = np.zeros(total_frame)
-        
-        h = h_range[h_index]
-        laplacian_matrix = 1 / h**2 * np.array([     
-            [0, 1, 0],
-            [1, -4, 1],
-            [0, 1, 0],
-        ])
-
-        # std_species = np.zeros((len(species), total_frame))
-        # print(f"A grid of size {T_size[0]*h:.2f}m*{T_size[1]*h:.5f}m cutted into {T_size[0]}*{T_size[1]} blocks, gap h = {h:.2f}m")
-        # print(f"dt = {dt:.5f}s, Playback speed: x{playback_speed:.1f}, Total time: {dt*total_frame:.2f}s")
-        # print(f"h={h:.4f}, dt={dt:.4f}, CFD number is A={D_A*dt/h**2:.5f}, B={D_B*dt/h**2:.5f}, AB={D_AB*dt/h**2:.5f}")
-        
-        dt_h_has_overflow[(dt, h)] = simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix)
-
-fig, ax = plt.subplots(1, 1, figsize=(4, 3))
-
-# plot scatter of dt and h
-for dt_index in range(len(dt_range)):
-    for h_index in range(len(h_range)):
-        dt = dt_range[dt_index]
-        h = h_range[h_index]
-        ax.scatter(dt, h, c="red" if dt_h_has_overflow[(dt, h)] else "green")
-
-for key in dt_h_has_overflow:
-    mu = D_A * key[0] / key[1]**2
-    dt_h_has_overflow[key] = (dt_h_has_overflow[key], mu)
-print(dt_h_has_overflow)
-
-# # plot the boundary line
-D = D_A
-f = lambda dt: (D*dt/0.25)**0.5
-ax.plot(np.linspace(0, 0.01, 100), f(np.linspace(0, 0.01, 100)), c='black', label='D*dt/h^2 = 0.25')
-
-ax.set_xlabel('dt')
-ax.set_ylabel('h')
-ax.set_xlim(0, 0.011)
-ax.set_ylim(0, 0.0035)
-ax.legend()
-ax.set_title('dt vs h')
-plt.show()
-
-
-        # print(f"std([A*]) = {np.std(Astars):.2e}, std([B*]) = {np.std(Bstars):.2e}")
-#         std_Astars.append(np.std(Astars))
-#         std_Bstars.append(np.std(Bstars))
-
-# print(std_Astars)
-# print(std_Bstars)
-
 
 
 # fig, axes = plt.subplots(1, 2, figsize=(10, 10))

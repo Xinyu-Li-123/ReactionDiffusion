@@ -28,7 +28,7 @@ np.random.seed(42)
 
 # binary cmap where zero is black and nonzero is white
 # binary_cmap = matplotlib.colors.ListedColormap(['black', 'white'])
-binary_cmap = matplotlib.cm.get_cmap("rainbow")
+binary_cmap = matplotlib.cm.get_cmap("gray")
 
 # cmap_A = matplotlib.cm.get_cmap("Reds")
 # cmap_B = matplotlib.cm.get_cmap("Blues")
@@ -41,7 +41,7 @@ def initialize():
     index2name = ["A", "B", "AB"]
     # reaction coefficients
     k1 = .23
-    k2 = .0
+    k2 = .6
     # diffusion coefficients of A, B, AB at x and y direction, a value in [0, 1]
     D_A = 0.0002
     D_B = 0.0002
@@ -59,12 +59,35 @@ def initialize():
     # T[1, 30:, 30:] = 5*np.random.random((70,70))
     # T[0, 20:50, 20:50] = 10*np.ones((30,30))
     # T[1, 30:60, 30:60] = 10*np.ones((30,30))
-    # T[0,100:150,100:150] = 50*np.ones((50,50))
-    # T[1,200:250,200:250] = 70*np.ones((50,50))
+    
+    # # random
+    # T[0, :, :] = 1*np.random.random(T_size)
+    # T[1, :, :] = 1*np.random.random(T_size)    
+
+
+    # # Tetris
+    # T[0,40:80,40:120] = 1
+    # T[0,80:120, 40:80] = 1
+    # T[0,120:160, 40:120] = 1
+
+    # T[1,40:80,120:160] = 1
+    # T[1,80:120, 80:160] = 1
+    # T[1,120:160, 120:160] = 1
+
+    # # Long strip
+    # T[0, 40:80, :] = 1
+    # T[1, 70:110, :] = 1
+
+    # Overlapping square
+    T[0, 50:130, 40:120] = 1
+    T[1, 70:150, 70:150] = 1
+
+
     # T[2,3:13,3:13] = 0*np.ones((10,10))
 
-    T[0,:,:] = 1*np.random.random(T_size)
-    T[1,:,:] = 1*np.random.random(T_size)
+    # T[0,:,:] = 1*np.random.random(T_size)
+    # T[1,:,:] = 1*np.random.random(T_size)
+
     # T[0,:,:] = 0
     # T[1,:,:] = 0
 
@@ -76,7 +99,6 @@ def initialize():
     #         T[1, i+n//2:i+n, j+n//2:j+n] = 1
             
     # generate two concentric rings on T of different sizes
-
     # x, y = np.ogrid[0:T_size[0], 0:T_size[1]]
     # mask = (x - T_size[0]/2)**2 + (y - T_size[1]/2)**2 < (T_size[0]/2)**2
     # mask = mask & ((x - T_size[0]/2)**2 + (y - T_size[1]/2)**2 > (T_size[0]/4)**2)
@@ -118,108 +140,6 @@ def initialize():
     return species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix
 
 
-def old_simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix):
-    # global species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix
-    def old_update_with_animation(frame_index):
-        # Dummy update
-        # T = np.random.random((len(species), *T_size))
-        if frame_index % 100 == 0:
-            print(f"Frame {frame_index}/{total_frame}")
-
-        # change caused by A + B -> AB
-        delta_reaction = -k1*(T[0,:,:]*T[1,:,:]) + k2*T[2,:,:]
-        delta_diffusion = np.zeros((len(species), *T_size))
-        for index in range(len(species)):
-            delta_diffusion[index,:,:] = convolve(T[index,:,:], laplacian_matrix, mode="wrap")
-
-        T[0,:,:] += ( delta_reaction + D_A  * delta_diffusion[0, :, :]) * dt
-        T[1,:,:] += ( delta_reaction + D_B  * delta_diffusion[1, :, :]) * dt
-        T[2,:,:] += (-delta_reaction + D_AB * delta_diffusion[2, :, :]) * dt
-
-        for index in range(len(species)):
-            # axes[index].set_title(f"Concentration of Species {index2name[index]} at {dt*frame_index:.2f}s, avg={np.average(T[index, :, :]):.2f}")
-            axes[index].set_title(f"[{index2name[index]}] at {dt*frame_index:.2f}s, avg={np.average(T[index, :, :]):.2e}")
-            if index != 2:
-                mats[index].set_data(T[index, :, :])
-            else:
-                mats[index].set_data(T[index, :, :]*1000 > 0)
-
-
-        axes[-1].set_title("[A*]={Astar_cur:.2e}/{Astar_init:.2e}, [B*]={Bstar_cur:.2e}/{Bstar_init:.2e}".format(
-            Astar_cur = Astars[frame_index], Astar_init = Astars[0],
-            Bstar_cur = Bstars[frame_index], Bstar_init = Bstars[0]
-        ))
-        Astars[frame_index] = np.sum(T[[0,2],:,:])
-        Bstars[frame_index] = np.sum(T[[1,2],:,:])
-
-        axes[-1].set_title("[A*]={Astar_cur:.2e}/{Astar_init:.2e}, [B*]={Bstar_cur:.2e}/{Bstar_init:.2e}".format(
-            Astar_cur = Astars[frame_index], Astar_init = Astars[0],
-            Bstar_cur = Bstars[frame_index], Bstar_init = Bstars[0]
-        ))
-        A_line.set_xdata(np.linspace(0, dt*frame_index, frame_index))
-        A_line.set_ydata(Astars[:frame_index])
-        B_line.set_xdata(np.linspace(0, dt*frame_index, frame_index))
-        B_line.set_ydata(Bstars[:frame_index])
-
-
-    fig, axes = plt.subplots(1, 4, figsize=(10, 10))
-    # set background color to gray
-    fig.patch.set_facecolor('gray')
-    mats = []
-
-    ## initialize the plot
-    # initialize animation plot
-    for index in range(len(species)):
-        axes[index].set_xlim(0, T_size[0])
-        axes[index].set_ylim(0, T_size[1])
-        axes[index].set_title(f"[{index2name[index]}] at {0:.2f}s")
-        axes[index].set_aspect("equal")
-        axes[index].axis("off")
-        mat = axes[index].matshow(
-            T[index, :, :],
-            # cmap = colormaps[index],
-            # vmin = cmap_min,
-            # vmax = cmap_max,
-        )
-        mat.set_cmap(colormaps[index])
-        # mat.set_cmap(binary_cmap)
-        mats.append(mat)
-    # mats[2].set_data((T[0, :, :] < T[1, :, :])*10)
-    # mats[2].set_cmap(binary_cmap)
-    # print(T[0,:,:] < T[1,:,:])
-    # sys.exit()
-
-
-    # initialize analysis plot
-    axes[-1].set_xlim(0, total_frame * dt * 1.1)
-    axes[-1].set_ylim(
-        0.5*np.min([Astars[0], Bstars[0]]), 
-        1.2*np.max([Astars[0], Bstars[0]]))
-    axes[-1].set_aspect("auto")
-    axes[-1].set_title("[A*]={Astar_cur:.2e}/{Astar_init:.2e}, [B*]={Bstar_cur:.2e}/{Bstar_init:.2e}".format(
-        Astar_cur = Astars[0], Astar_init = Astars[0],
-        Bstar_cur = Bstars[0], Bstar_init = Bstars[0]
-    ))
-    A_line, = axes[-1].plot(range(1), Astars[0], label="A*")
-    B_line, = axes[-1].plot(range(1), Bstars[0], label="B*")
-    axes[-1].legend()
-
-    ## run animation
-    ani = animation.FuncAnimation(
-        fig, 
-        old_update_with_animation, 
-        frames=total_frame, 
-        interval=interval, 
-        repeat = False,
-        save_count=50)
-
-    if save_animation:
-        # save the animation
-        ani.save(f'{animation_name}.mp4', writer='ffmpeg', fps=30)
-    else:
-        plt.show()
-
-
 def simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix):
     """
     return if has overflow
@@ -248,7 +168,7 @@ def simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_si
 
     has_overflow = False
 
-    fig, axes = plt.subplots(2, 2, figsize=(5, 5))
+    fig, axes = plt.subplots(2, 2, figsize=(7, 7))
     # set background color to gray
     fig.patch.set_facecolor('gray')
     axes[0, 0].matshow(
@@ -260,7 +180,7 @@ def simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_si
         T[1, :, :],
         cmap = cmap_B
         )
-    axes[0, 1].set_title("[A] at {time:.2f}s".format(time=0))
+    axes[0, 1].set_title("[B] at {time:.2f}s".format(time=0))
 
 
     for frame_index in range(0, total_frame):
@@ -268,10 +188,9 @@ def simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_si
             print("Overflow detected, aborting simulation...")
             return True
 
-        if frame_index+1 % 1000 == 0:
-            print(f"frame {frame_index} / {total_frame}")
         if frame_index % 1000 == 0:
-            print(T[0,:,:].min(), T[0,:,:].max())
+            print(f"frame {frame_index} / {total_frame}")
+            print("{:.4f}, {:.4f}".format(T[0,:,:].min(), T[0,:,:].max()))
 
         has_overflow = update_without_animation(frame_index)
 
@@ -289,6 +208,9 @@ def simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_si
     axes[1, 1].set_title("[B] at {0:.2f}s".format(frame_index*dt))
     plt.show()
 
+    # save as png
+    fig.savefig(f"bd_tetris_{str(total_frame).zfill(5)}.png")
+
     return False
 
 
@@ -298,6 +220,11 @@ def simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size,
 
     def update_with_animation(frame_index):
         # change caused by A + B -> AB
+        if frame_index+1 % 1000 == 0:
+            print(f"frame {frame_index} / {total_frame}")
+        if frame_index % 1000 == 0:
+            print(T[0,:,:].min(), T[0,:,:].max())
+
         try:
             delta_reaction = -k1*(T[0,:,:]*T[1,:,:]) + k2*T[2,:,:]
             delta_diffusion = np.zeros((len(species), *T_size))
@@ -320,7 +247,7 @@ def simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size,
 
         return False
     
-    fig, axes = plt.subplots(2, 2, figsize=(5, 5))
+    fig, axes = plt.subplots(2, 2, figsize=(7, 7))
     # set background color to gray
     fig.patch.set_facecolor('gray')
     mats = []
@@ -348,15 +275,12 @@ def simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size,
         interval=interval, 
         repeat = False,
         save_count=50)
-    
     plt.show()
-
-    pass
 
 
 species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix = initialize()
 dt = dt
-total_frame = 2000
+total_frame = 1000
 
 h = h
 laplacian_matrix = 1 / h**2 * np.array([     
@@ -367,8 +291,8 @@ laplacian_matrix = 1 / h**2 * np.array([
 
 D = D_A
 print(f"dt = {dt}, h = {h}, CFD = {D*dt/h**2}")
-simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix)
-
+# simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix)
+simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix)
 
 
 # fig, axes = plt.subplots(1, 2, figsize=(10, 10))

@@ -41,7 +41,7 @@ def initialize():
     index2name = ["A", "B", "AB"]
     # reaction coefficients
     k1 = .23
-    k2 = .6
+    k2 = .0
     # diffusion coefficients of A, B, AB at x and y direction, a value in [0, 1]
     D_A = 0.0002
     D_B = 0.0002
@@ -108,8 +108,8 @@ def initialize():
 
 
     ## Animation setting
-    save_animation = False
-    animation_name = "ReactionDiffusion_A_B_concentric"
+    save_animation = True
+    animation_name = "ReactionDiffusion_A_B_square"
     colormaps = ["Reds", "Blues", "Purples"]      # colormap for each species
     binary_cmap = matplotlib.colors.ListedColormap(['black', 'white'])
 
@@ -242,7 +242,7 @@ def simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size,
         # update species plots
         for index in range(len(species)-1):
             mats[2+index].set_data(T[index, :, :])
-            axes[1, index].set_title("[{name}] at {time:.2f}s".format(name=index2name[index], time=frame_index*dt))
+            axes[1, index].set_title("[{name}] at {time:.2f}s, max={max:.2e}".format(name=index2name[index], time=frame_index*dt, max=T[index,:,:].max()))
             # print(T[index,:,:].min(), T[index,:,:].max())
 
         return False
@@ -257,8 +257,8 @@ def simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size,
             cmap = cmap_A if index == 0 else cmap_B
             )
         mats.append(mat)
-    axes[0, 0].set_title("[A] at {time:.2f}s".format(time=0))
-    axes[0, 1].set_title("[B] at {time:.2f}s".format(time=0))    
+    axes[0, 0].set_title("[A] at {time:.2f}s, max={max_A:.2e}".format(time=0, max_A=T[0,:,:].max()))
+    axes[0, 1].set_title("[B] at {time:.2f}s, max={max_B:.2e}".format(time=0, max_B=T[1,:,:].max()))    
     for index in range(len(species)-1):
         mat = axes[1, index].matshow(
             T[index, :, :],
@@ -275,12 +275,20 @@ def simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size,
         interval=interval, 
         repeat = False,
         save_count=50)
-    plt.show()
+    
+    if save_animation:
+        # ani.save(f"{animation_name}.gif", writer='imagemagick', fps=playback_speed)
+        ani.save(f"{animation_name}.mp4", writer='ffmpeg', fps=240)
+        print("Animation saved.")
+    else:
+        plt.show()
+
+    return False
 
 
 species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix = initialize()
 dt = dt
-total_frame = 1000
+total_frame = 10000
 
 h = h
 laplacian_matrix = 1 / h**2 * np.array([     
@@ -291,8 +299,9 @@ laplacian_matrix = 1 / h**2 * np.array([
 
 D = D_A
 print(f"dt = {dt}, h = {h}, CFD = {D*dt/h**2}")
-# simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix)
-simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix)
+
+simulate_with_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix)
+# simulate_without_animation(species, index2name, k1, k2, D_A, D_B, D_AB, T_size, h, T, save_animation, animation_name, colormaps, binary_cmap, dt, interval, playback_speed, total_frame, Astars, Bstars, laplacian_matrix)
 
 
 # fig, axes = plt.subplots(1, 2, figsize=(10, 10))
